@@ -1,0 +1,384 @@
+---
+title: "Model-robust standardization in cluster-randomized trials"
+subtitle: "Estimands and doubly robust estimation for cluster-randomized trials with survival outcomes"
+output: html_document
+vignette: >
+  %\VignetteIndexEntry{Introduction to MRStdCRT Package}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{rmarkdown::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Introduction
+
+The \`MRStdCRT\`\` package provides tools for computing the model-robust 
+standardization estimator with jackknife variance estimator for the cluster 
+average treatment effect(c-ATE) and individual average treatment effect(i-ATE) 
+in clustered randomized trials (CRTs).
+
+# Model robust standardization
+
+In CRT, assume the cluster size $N_{i}$ is the natural cluster panel
+size. The total sample size of the study is $N=\sum_{i=1}^m N_{i}$. Let
+$A_i\in\{0,1\}$ be the randomized cluster-level treatment indicator,
+with $A_i=1$ indicating the assignment to the treatment condition and
+$A_i=0$ to usual care. The potential outcomes framework and define
+$\{Y_{ij}(1),Y_{ij}(0)\}$ as a pair of potential outcomes for each
+individual $j \in \{1,\dots, N_i\}$ under the treatment and usual care
+conditions, respectively. Denote
+$\boldsymbol{X}_i =  {\boldsymbol{X}_{i1},\dots,\boldsymbol{X}_{iN_i}}^\top$
+as the collection of baseline covariates across all individual, and
+$\boldsymbol{H}_i$ as the collection of cluster-level covariates.
+Writing $f(a,b)$ as a pre-specified contrast function, a general class
+of weighted average treatment effect in CRTs is defined as
+$$\Delta_{\omega}=f(\mu_\omega(1),\mu_\omega(0)),$$ where the weighted
+average potential outcome under treatment condition $A_i=a$ is
+\begin{align*}
+\mu_\omega(a)=\frac{E\left((\omega_i/N_i)\sum_{j=1}^{N_i}Y_{ij}(a)\right)}{E(\omega_i)}.
+\end{align*}
+
+In this formulation, $\omega_i$ is a pre-specified cluster-specific
+weight determining the contribution of each cluster to the target
+estimand, and can be at most a function of the cluster size $N_i$, or
+additional cluster-level covariates $\boldsymbol{H}_i$. In CRTs, two
+typical estimands of interest arise from different specifications of
+$\omega_i$. First, setting $\omega_i=1$ gives each cluster equal weight
+and leads to the \emph{cluster-average treatment effect},
+$\Delta_C=f(\mu_C(1),\mu_C(0))$, with \begin{align*}
+\mu_C(a)=E\left(\frac{\sum_{j=1}^{N_i}Y_{ij}(a)}{N_i}\right).
+\end{align*} Second, setting $\omega_i=N_i$ gives equal weight to each
+individual in the study regardless of their cluster membership and leads
+to the \emph{individual-average treatment effect},
+$\Delta_I=f(\mu_I(1),\mu_I(0))$, with \begin{align*}
+\mu_I(a)=\frac{E\left(\sum_{j=1}^{N_i}Y_{ij}(a)\right)}{E(N_i)}.
+\end{align*} Under the general setup, the average potential outcomes can
+be estimated by \begin{align*}
+\widehat{\mu}_\omega(a)=\sum_{i=1}^m \frac{\omega_i}{\omega_{+}}\left\{\underbrace{\widehat{E}(\overline{Y}_{i}|A_i=a,\boldsymbol{X}_i,\boldsymbol{H}_i,N_i)}_{\text{regression prediction}}+\underbrace{\frac{I(A_i=a)\left(\overline{Y}_i-\widehat{E}(\overline{Y}_{i}|A_i=a,\boldsymbol{X}_i,\boldsymbol{H}_i,N_i)\right)}{\pi(\boldsymbol{X}_i,\boldsymbol{H}_i,N_i)^a\left(1-\pi(\boldsymbol{X}_i,\boldsymbol{H}_i,N_i)\right)^{1-a}}}_{\text{weighted cluster-level residual}}\right\},
+\end{align*} where $\omega_{+}=\sum_{i=1}^m \omega_i$ is the sum of
+weights across clusters,
+$\pi(\boldsymbol{X}_i,\boldsymbol{H}_i,N_i)=P(A_i=a|\boldsymbol{X}_i,\boldsymbol{H}_i,N_i)$
+is the conditional randomization probability of each cluster given
+baseline information, and
+$\widehat{E}(\overline{Y}_{i}|A_i=a,\boldsymbol{X}_i,\boldsymbol{H}_i,N_i)$
+is the conditional mean of the cluster average outcome,
+$\overline{Y_i}=N_i^{-1}\sum_{i=1}^{N_i}Y_{ij}$, given baseline
+covariates and cluster size, which could be estimated via any sensible
+outcome regression model.
+
+# Data Structure and Description
+
+In the context of cluster-randomized trials (CRT), we observe the following data 
+vector for each subject $j$ in cluster $i$:
+$\{Y_{ij}, A_{i}, \boldsymbol{X}_{ij}, \boldsymbol{H}_i, N_i\}$, where:
+
+-   $Y_{ij}$ represents the observed outcome for individual $j$ in cluster $i$,
+-   $A_{i}$ is the treatment assignment for cluster $i$,
+-   $\boldsymbol{X}_{ij}$ denotes the individual-level covariates,
+-   $\boldsymbol{H}_i$ denotes the cluster-level covariates, 
+-   $N_i$ is the number of individuals in cluster $i$.
+
+Different working outcome mean models are proposed based on either 
+individual-level observations or cluster-level summarizes (means),
+which can be further used to construct the model-robust standardization estimator 
+for either the weighted **cluster-averaged treatment effect (c-ATE)** or weighted
+**individual-averaged treatment effect (i-ATE)**.
+
+## Syntax
+
+The primary data fitting function is `MRStdCRT_fit`, which generates a
+summary for the target estimands, including both **c-ATE**
+and **i-ATE**. In particular, the output provides:
+
+-   The test statistics for testing non-informative cluster sizes,
+-   The number of clusters,
+-   The cluster sizes, 
+-   The outcome regression model used.
+
+User can call the `MRStdCRT_fit` function as follows:
+
+`MRStdCRT_fit <- function(formula, data, clus_id, trt, prob, method,family,corstr,scale, jack, alpha)`
+
+with the following arguments:
+
+-   `formula`: The model formula for the outcome regression.
+-   `data`: The dataset being analyzed.
+-   `clus_id`: The identifier for the clusters.
+-   `trt`: The treatment variable.
+-   `prob`: The vector of treatment probabilities for each cluster.
+-   `method`: The method used for outcome regression model fitting, i.e.
+    "LM", "LMM", "GEE", "GLMM".
+-   `family`: The distributional family for the outcome model (default
+    is `gaussian(link="identity")`).
+-   `corstr`: The correlation structure used in GEE or GLMM.
+-   `scale`: The scale of estimand including risk difference (RD), risk
+    ratio (RR), and odds ratio (RR).
+-   `jack`: Categorical variable for jackknife variance estimator (default
+    is 1, i.e., the standard jackknife variance estimator).
+-   `alpha`: The significance level (default is 0.05).
+
+# Illustrative example with PPACT data sets
+
+## Illustrative Example
+
+In this example, we demonstrate how to use the `MRStdCRT_fit` function to
+estimate treatment effects in a CRT using the `ppact` dataset. The goal
+is to estimate the cluster-averaged treatment effect (c-ATE) and the
+individual-averaged treatment effect (i-ATE) using the marginal model fitted by 
+generalized estimating equation (GEE).
+
+### Step 1: Prepare the Treatment Assignment Probabilities
+
+Before fitting the model, user needs to calculate the probabilities of
+treatment assignment for each cluster, which is either known by design 
+(e.g., simple randomization and pair-matched randomization) or estimated 
+properly under covariate-constrained randomization. See Section 3.2 in the main
+manuscript for more information.
+
+For example, one can estimate the treatment assignment probabilities as follows:
+
+``` r
+library(MRStdCRT)
+data(ppact)
+
+ppact_prob <- ppact %>%
+  group_by(CLUST) %>%
+  mutate(first_trt = first(INTERVENTION)) %>%
+  ungroup() %>%
+  mutate(prob_A_1 = mean(first_trt == 1, na.rm = TRUE),  # Proportion trt = 1
+         prob_A_0 = mean(first_trt == 0, na.rm = TRUE)) %>%
+  mutate(assigned_value = ifelse(INTERVENTION == 1, prob_A_1, prob_A_0))
+
+prob <- ppact_prob$assigned_value
+```
+
+### Step 2: Fit the `robust_CRT` Model
+
+``` r
+example <- MRStdCRT_fit(
+  formula = PEGS ~ AGE + FEMALE + comorbid + Dep_OR_Anx + pain_count + PEGS_bl +
+    BL_benzo_flag + BL_avg_daily + satisfied_primary + cluster(n),
+  data = ppact,
+  clus_id = "CLUST",
+  trt = "INTERVENTION",
+  prob = prob,
+  method = "GEE",
+  corstr = "independence",
+  scale = "RR"
+)
+example$estimate
+```
+
+## Survival outcomes
+
+With survival outcomes, each cluster \( i \) consists of \( N_i \) individuals, and a binary treatment \( A_i \in \{0,1\} \) is randomized at the cluster level. The event time \( T_{ij} \) and censoring time \( C_{ij} \) lead to observed data:
+
+\[
+U_{ij} = \min(T_{ij}, C_{ij}), \quad \Delta_{ij} = \mathbb{I}\{T_{ij} \leq C_{ij}\}
+\]
+
+where \( \mathbb{I} \) is the indicator function. 
+
+---
+
+## Treatment Effect Estimands
+
+### **Counterfactual Survival Functions**
+To evaluate treatment effects, we define two key counterfactual survival functions:
+
+\[
+S_C^{(a)}(t) = E \left\{ \frac{1}{N_i} \sum_{j=1}^{N_i} \mathbb{I} (T_{ij}^{(a)} \geq t) \right\}, \quad
+S_I^{(a)}(t) = \frac{E \left\{ \sum_{j=1}^{N_i} \mathbb{I}(T_{ij}^{(a)} \geq t) \right\}}{E(N_i)}
+\]
+
+where \( S_C^{(a)}(t) \) measures the **cluster-level survival function**, and \( S_I^{(a)}(t) \) measures the **individual-level survival function**.
+
+### **Restricted Mean Survival Time (RMST)**
+We define the restricted mean survival time (RMST):
+
+\[
+\mu_C^{(a)}(t) = E \left\{ \frac{1}{N_i} \sum_{j=1}^{N_i} \min\left(T_{ij}^{(a)},t\right) \right\}, \quad
+\mu_I^{(a)}(t) = \frac{E \left\{ \sum_{j=1}^{N_i} \min\left(T_{ij}^{(a)},t\right) \right\}}{E(N_i)}
+\]
+
+where \( \mu_C^{(a)}(t) \) describes the **mean survival time at the cluster level**, and \( \mu_I^{(a)}(t) \) at the **individual level**.
+
+---
+
+### **Multi-State Survival Outcomes**
+Multi-state survival analysis extends the single-state approach to ordinal states, where each state represents a level of severity. An individual's state transition over time is denoted by:
+
+\[
+Y_{ij}^{(a)}(t) = q, \quad q \in \{0,1,\dots, Q+1\}
+\]
+
+where higher values** indicate greater severity, with \( Q+1 \) representing an absorbing state (e.g., death)**.
+
+To compare treatment effects, we define the cumulative win time function, which quantifies the duration an individual in one group spends in a more favorable state than an individual in the other group:
+
+\[
+\mathcal{W}\{Y_{ij}^{(a)}, Y_{kl}^{(1-a)}\}(t) = \int_{0}^{t} \mathbb{I}\{Y_{ij}^{(a)}(u) < Y_{kl}^{(1-a)}(u)\} \, du.
+\]
+
+This leads to the restricted mean time in favor (rmt-if) estimands:
+
+\[
+\Delta_C^{\text{rmt-if}}(t) = \xi_C^{(1)}(t) - \xi_C^{(0)}(t), \quad 
+\Delta_I^{\text{rmt-if}}(t) = \xi_I^{(1)}(t) - \xi_I^{(0)}(t),
+\]
+
+where:
+
+\[
+\xi_C^{(a)}(t) = E\left[\frac{\sum_{j=1}^{N_i}\sum_{l=1}^{N_k} \mathcal{W}\{Y_{ij}^{(a)}, Y_{kl}^{(1-a)}\}(t)}{N_iN_k}\right],
+\]
+
+\[
+\xi_I^{(a)}(t) = \frac{E\left[\sum_{j=1}^{N_i}\sum_{l=1}^{N_k} \mathcal{W}\{Y_{ij}^{(a)}, Y_{kl}^{(1-a)}\}(t)\right]}{E[N_iN_k]}.
+\]
+
+For two-state outcomes (alive vs. dead), rmt-if simplifies to restricted mean survival time (RMST).
+
+---
+
+
+## Doubly Robust Estimators
+
+The doubly robust estimator for \( S_C^{(a)}(t) \) is given by:
+
+\[
+\widehat{S}_{ij}^{(a)}(t) = \frac{A_i^{a} (1-A_i)^{1-a} \mathbb{I}(U_{ij} \geq t) }{\pi^{(a)} K_c^{(a)}(t\mid\bm{V}_{i})} - \left\{ \frac{A_i^{a} (1-A_i)^{1-a} - \pi^{(a)}}{ \pi^{(a)}} \right\}P(T_{ij}^{(a)} \geq t\mid\bm{V}_{i})  
+\]
+
+\[
++ \frac{A_i^{a} (1-A_i)^{1-a} }{\pi^{(a)}} \int_{0}^{t} \frac{dM_{c}^{(a)}(u\mid\bm{O}_{ij}) }{K_c^{(a)}(u\mid \bm{V}_{i})} \frac{P(T_{ij}^{(a)} \geq t|\bm{V}_{i})}{P(T_{ij}^{(a)}\geq u\mid\bm{V}_{i} )}
+\]
+
+\[
+\widehat{S}_C^{(a)}(t) = \frac{1}{M} \sum_{i=1}^{M} \frac{1}{N_i} \sum_{j=1}^{N_i} \widehat{S}_{ij}^{(a)}(t), 
+\quad
+\widehat{S}_I^{(a)}(t) = \frac{1}{\sum_{i=1}^{M}N_i} \sum_{i=1}^{M}  \widehat{S}_{ij}^{(a)}(t).
+\]
+
+
+
+
+---
+
+
+## Sytax
+
+
+The function in this package is `drsurv_crt()`, which estimates survival probabilities or restricted mean survival time (RMST) for single-state and rmt-if for multi-state in cluster-randomized trials.
+
+In particular, the output provides:
+
+- The estimated survival functions at both the cluster level and individual level.
+- The restricted mean survival time (RMST) estimates.
+- The ability to model multi-state survival using rmt-if when applicable.
+
+
+The function includes the following arguments:
+
+- **`s_formula`**  
+  Formula for the survival model, including `cluster(id)`, specified as `Surv(time, event) ~ covariates  + cluster(id)`.  
+
+- **`c_formula`**  
+  Formula for the censoring model, including `cluster(id)`, specified as `Surv(time, event) ~ covariates + cluster(id)`.  
+
+- **`trt`**  
+  Name of the treatment variable, which must be binary (0/1).  
+
+- **`probs`**  
+  A numeric vector specifying treatment assignment probabilities as `(P(A=1), P(A=0))`.  
+
+- **`method`**  
+  Specifies the estimation method:  
+  - `"marginal"`: Fits a **marginal Cox model** (default).  
+  - `"frailty"`: Fits a **frailty Cox model** to account for within-cluster correlation.  
+
+- **`res_time`**  
+  A numeric vector specifying time points at which survival or RMST is estimated.  
+
+- **`data`**  
+  A data frame containing survival outcomes, treatment assignments, and covariates.  
+- **`id`**  
+  The cluster identifier variable, used for modeling intra-cluster correlations.  
+
+---
+
+### Output
+
+The function returns an object of class **`dr_surv`**, which contains:
+
+- **`estimator`**: A list containing the estimated survival probabilities or RMST values for cluster-level and individual-level.  
+- **`variance`**: A list containing the estimated variance of the survival or RMST estimates for cluster-level and individual-level.  
+- **`estimand`**: A character string specifying the estimated quantity (e.g., `"surv"`, `"rmst"`, `"rmt-if"`).  
+- **`scale`**: The scale of estimation, either `"RD"` (risk difference) or `"RR"` (risk ratio).  
+- **`time`**: A numeric vector of time points at which survival or RMST was estimated.  
+- **`M`**: The number of clusters in the dataset.  
+
+The returned object can be used with `summary()` to extract key results.
+
+## Illustrative example with simulated multi-state data
+
+### Step 1: Load the dataset and compute the cluster size as well as the treatment assignment probabilities
+
+```r
+library(MRStdCRT)
+
+# Load example dataset
+data(ex_dt)
+
+sum_N <- ex_dt %>% group_by(M) %>% summarise(n())
+ex_dt$Ni <- rep(sum_N$`n()`, sum_N$`n()`)
+
+prop <- ex_dt %>%
+  group_by(M) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(prop1 = mean(treatment == 1), prop0 = mean(treatment == 0)) %>%
+  as.data.frame()
+
+probs <- c(prop$prop1, prop$prop0)
+
+```
+
+
+### Step 2: Define survival and censoring models
+
+```r
+s_formula <- Surv(obs_T, Delta) ~ Z1 + Z2 + W1 + W2 + N_i +  cluster(M)
+c_formula <- Surv(obs_T, Delta) ~ Z1 + Z2 + W1 + W2 + cluster(M)
+
+```
+
+### Step 3: Fit the `drsurv_crt` model
+
+```r
+
+results <- drsurv_crt(
+  s_formula = s_formula,
+  c_formula = c_formula,
+  trt = "A",
+  probs = probs,
+  method = "marginal",
+  res_time = c(0.1, 0.5, 1, 1.5),
+  data = ex_dt,
+  id = "id"
+)
+
+summary_results <- summary.dr_surv(results, alpha = 0.05)
+# Print cluster-level survival estimates
+print(summary_results$summary_s_c)
+
+# Print individual-level survival estimates
+print(summary_results$summary_s_i)
+
+```
+
+
+
+
+

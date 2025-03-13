@@ -1,0 +1,5 @@
+exportPattern("^[[:alpha:]]+")
+useDynLib(MRStdCRT, .registration = TRUE)
+importFrom(Rcpp, sourceCpp)
+export(drs_p_est)
+export(drm_p_est)
