@@ -27,8 +27,9 @@
 #'   - `s_i`: A data frame containing **individual-level survival estimates** for each time point in `res_time`.
 #'
 #' @import dplyr
-#' @importFrom survival
-#'
+#' @import survival
+#' @import frailtyEM
+#' @importFrom stats qnorm
 #' @examples
 #' \dontrun{
 #' # Load example data
@@ -245,7 +246,7 @@ drsurv_crt <- function(s_formula, c_formula, trt, probs,
 #' @return A list with summary statistics:
 #'   - `$summary_s_c`: Summary of **cluster-level survival estimates** with confidence intervals.
 #'   - `$summary_s_i`: Summary of **individual-level survival estimates** with confidence intervals.
-#'
+#' @method summary dr_surv
 #' @export
 summary.dr_surv <- function(object,alpha=0.05) {
   cat("Summary of doubly robust estimators:\n")
@@ -264,7 +265,7 @@ summary.dr_surv <- function(object,alpha=0.05) {
   rownames(tb_c) <- rownames(tb_i) <- NULL
   print(tb_c)
   cat("The individual-level estimators are: \n")
-  print(tb_c)
+  print(tb_i)
 
   return(list(tb_i,tb_c))
 

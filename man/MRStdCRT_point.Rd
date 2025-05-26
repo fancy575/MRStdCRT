@@ -7,12 +7,12 @@
 MRStdCRT_point(
   formula,
   data,
-  clus_id,
+  clusterID,
   trt,
-  prob,
+  trtprob,
   family = gaussian(link = "identity"),
   corstr,
-  method = "LM",
+  method = "GLM",
   scale
 )
 }
@@ -21,21 +21,22 @@ MRStdCRT_point(
 
 \item{data}{A data frame where categorical variables should already be converted to dummy variables.}
 
-\item{clus_id}{A string representing the column name of the cluster ID in the data frame.}
+\item{clusterID}{A string representing the column name of the cluster ID in the data frame.}
 
 \item{trt}{A string representing the column name of the treatment assignment per cluster.}
 
-\item{prob}{A vector of treatment probabilities per cluster, conditional on covariates.}
+\item{trtprob}{A vector of treatment probabilities per cluster, conditional on covariates.}
 
 \item{family}{The link function for the outcome. Can be one of the following:
 - `gaussian(link = "identity")`: for continuous outcomes. Default is gaussian("identity")
 - `binomial(link = "logit")`: for binary outcomes.
-- `poisson(link = "log")`: for count outcomes.}
+- `poisson(link = "log")`: for count outcomes.
+- `gaussian(link = "logit")`: for binary outcomes with logit link to model the genealized linear model.}
 
 \item{corstr}{A string specifying the correlation structure for GEE models (e.g., "exchangeable", "independence").}
 
 \item{method}{A string specifying the outcome mean model. Possible values are:
-- 'LM': linear model on cluster-level means (continuous outcome).
+- 'GLM': Generalized linear model on cluster-level means (continous/binary outcome).
 - 'LMM': linear mixed model on individual-level observations (continuous outcome).
 - 'GEE': marginal models fitted by generalized estimating equations.
 - 'GLMM': generalized linear mixed model.}

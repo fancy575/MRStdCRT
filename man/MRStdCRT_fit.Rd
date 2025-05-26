@@ -7,9 +7,9 @@
 MRStdCRT_fit(
   formula,
   data,
-  clus_id,
+  clusterID,
   trt,
-  prob,
+  trtprob = rep(0.5, nrow(data)),
   method,
   family = gaussian(link = "identity"),
   corstr,
@@ -23,14 +23,14 @@ MRStdCRT_fit(
 
 \item{data}{A data frame where categorical variables should already be converted to dummy variables.}
 
-\item{clus_id}{A string representing the column name of the cluster ID in the data frame.}
+\item{clusterID}{A string representing the column name of the cluster ID in the data frame.}
 
 \item{trt}{A string representing the column name of the treatment assignment per cluster (0=control, 1=treatemnt).}
 
-\item{prob}{A vector of treatment probabilities per cluster, conditional on covariates.}
+\item{trtprob}{A vector of treatment probabilities per cluster, conditional on covariates. Default is 0.5}
 
 \item{method}{A string specifying the outcome mean model. Possible values are:
-- 'LM': linear model on cluster-level means (continuous outcome).
+- 'GLM': generalized linear model on cluster-level means (binary/continuous outcome).
 - 'LMM': linear mixed model on individual-level observations (continuous outcome).
 - 'GEE': marginal models fitted by generalized estimating equations.
 - 'GLMM': generalized linear mixed model.}
@@ -38,7 +38,8 @@ MRStdCRT_fit(
 \item{family}{The link function for the outcome. Can be one of the following:
 - `gaussian(link = "identity")`: for continuous outcomes. Default is gaussian("identity").
 - `binomial(link = "logit")`: for binary outcomes.
-- `poisson(link = "log")`: for count outcomes.}
+- `poisson(link = "log")`: for count outcomes.
+- `gaussian(link = "logit")`: for binary outcomes with logit link to model the genealized linear model.}
 
 \item{corstr}{A string specifying the correlation structure for GEE models (e.g., "exchangeable", "independence").}
 
@@ -58,7 +59,7 @@ A list with the following components:
 }
 \description{
 This function performs cluster randomized trials (CRT) analysis using model-robust standardization estimators to estimate the cluster-average and individual-average treatment effect.
-It handles different outcome mean models (LM, LMM, GEE, GLMM) and supports both continuous, binary, and count outcomes with options for different correlation structures and scales (risk different, risk ratio and odds ratio).
+It handles different outcome mean models (GLM, LMM, GEE, GLMM) and supports both continuous, binary, and count outcomes with options for different correlation structures and scales (risk different, risk ratio and odds ratio).
 }
 \examples{
 \dontrun{
@@ -76,9 +77,9 @@ example <- MRStdCRT_fit(
   formula = PEGS ~ AGE + FEMALE + comorbid + Dep_OR_Anx + pain_count+PEGS_bl +
    BL_benzo_flag + BL_avg_daily + satisfied_primary + cluster(n),
  data = ppact,
- clus_id = "CLUST",
+ clusterID = "CLUST",
  trt = "INTERVENTION",
- prob = prob,
+ trtprob = prob,
  method = "GEE",
  corstr = "independence",
  scale = "RR"

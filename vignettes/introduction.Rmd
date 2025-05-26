@@ -108,7 +108,7 @@ with the following arguments:
 -   `trt`: The treatment variable.
 -   `prob`: The vector of treatment probabilities for each cluster.
 -   `method`: The method used for outcome regression model fitting, i.e.
-    "LM", "LMM", "GEE", "GLMM".
+    "GLM", "LMM", "GEE", "GLMM".
 -   `family`: The distributional family for the outcome model (default
     is `gaussian(link="identity")`).
 -   `corstr`: The correlation structure used in GEE or GLMM.

@@ -20,7 +20,8 @@
 #' @import survival
 #' @import frailtyEM
 #' @import abind
-#' @importFrom survival
+#' @importFrom stats qnorm
+
 #' @export
 
 drs_p_est <- function(s_formula, c_formula, trt, probs,
